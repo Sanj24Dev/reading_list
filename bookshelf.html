@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sanjana's bookshelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4f0; --ink:#24201c; --muted:#6f675e; --line:#ddd6cb;
+  --wood:#a9784a; --wood-dark:#7a5232; --wood-light:#c79766;
+  --serif:'Fraunces',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#1c1917; --ink:#f1ebe2; --muted:#a39a8e; --line:#3a342e;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh;padding:0 0 4rem}
+a{color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:1.5rem 1.25rem}
+.back{font-size:.9rem;color:var(--muted);text-decoration:none}
+.back:hover{color:var(--ink)}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(1.9rem,4vw,2.8rem);margin:.6rem 0 .2rem}
+.sub{color:var(--muted);margin:0 0 1.5rem}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;margin-bottom:.9rem}
+.controls input,.controls select{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem}
+.controls input{flex:1 1 220px;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.6rem}
+.chip{font:inherit;font-size:.85rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:.25rem .8rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.count{color:var(--muted);font-size:.9rem;min-height:1.3em}
+
+/* shelf */
+.shelf-area{position:relative;margin-top:.5rem}
+.scroller{overflow-x:auto;overflow-y:hidden;padding:70px 2rem 0;scrollbar-width:none;scroll-behavior:smooth}
+.scroller::-webkit-scrollbar{display:none}
+.row{display:flex;align-items:flex-end;gap:3px;width:max-content;min-width:100%;padding-bottom:0}
+.plank{height:22px;margin:0 0 0;background:linear-gradient(var(--wood-light),var(--wood) 35%,var(--wood-dark));border-radius:2px 2px 6px 6px;box-shadow:0 14px 18px -8px rgba(0,0,0,.35)}
+.plank-under{height:10px;margin:0 1rem;background:rgba(0,0,0,.12);filter:blur(6px);border-radius:50%}
+
+.book{
+  position:relative;border:0;padding:0;cursor:pointer;flex:none;
+  border-radius:2px 3px 3px 2px;color:var(--fg);background:var(--c);
+  box-shadow:inset 3px 0 0 rgba(255,255,255,.18),inset -3px 0 0 rgba(0,0,0,.2),1px 0 2px rgba(0,0,0,.25);
+  transform-origin:50% 100%;
+  transition:transform .28s cubic-bezier(.2,.8,.3,1),box-shadow .28s;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.book::before,.book::after{content:"";position:absolute;left:0;right:0;height:2px;background:var(--fg);opacity:.35}
+.book::before{top:16px}.book::after{bottom:16px}
+.book span.t{
+  writing-mode:vertical-rl;font-family:var(--serif);font-weight:600;font-size:.92rem;line-height:1.1;
+  max-height:calc(100% - 64px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em;
+}
+.book:hover,.book:focus-visible{transform:translateY(-22px) rotate(-1.5deg);box-shadow:inset 3px 0 0 rgba(255,255,255,.25),inset -3px 0 0 rgba(0,0,0,.2),6px 16px 18px -4px rgba(0,0,0,.4);z-index:2;outline:none}
+.book:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.book.pop{animation:pop .5s ease}
+@keyframes pop{0%{transform:translateY(0)}40%{transform:translateY(-34px)}100%{transform:translateY(0)}}
+
+.arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:1.2rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.arrow:hover{background:var(--ink);color:var(--bg)}
+.arrow.l{left:-6px}.arrow.r{right:-6px}
+.empty{padding:3rem 1rem;color:var(--muted);text-align:center}
+
+/* detail */
+dialog{border:0;padding:0;background:transparent;max-width:min(760px,94vw);width:100%;color:var(--ink)}
+dialog::backdrop{background:rgba(20,15,10,.55);backdrop-filter:blur(3px)}
+.open-book{display:grid;grid-template-columns:230px 1fr;background:var(--bg);border-radius:6px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.45);perspective:1200px}
+.cover{background:var(--c);color:var(--fg);padding:1.6rem 1.2rem;display:flex;flex-direction:column;justify-content:space-between;transform-origin:right center;animation:swing .6s cubic-bezier(.2,.8,.3,1);box-shadow:inset -8px 0 14px rgba(0,0,0,.2)}
+@keyframes swing{from{transform:rotateY(70deg);opacity:.2}to{transform:none;opacity:1}}
+.cover h2{font-family:var(--serif);font-size:1.5rem;line-height:1.15;margin:0}
+.cover p{margin:0;opacity:.85}
+.page{padding:1.6rem 1.7rem;position:relative}
+.page .x{position:absolute;top:.6rem;right:.7rem;border:0;background:transparent;color:var(--muted);font-size:1.5rem;cursor:pointer;line-height:1}
+.page .x:hover{color:var(--ink)}
+.stars{color:#c9892b;letter-spacing:.12em;font-size:1.05rem}
+dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;margin:1rem 0;font-size:.92rem}
+dt{color:var(--muted)}dd{margin:0}
+.summary{line-height:1.6;margin:.8rem 0 0}
+.notes{margin-top:1rem;padding-left:.9rem;border-left:3px solid var(--line);font-family:var(--serif);font-style:italic;line-height:1.55}
+.tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:1rem}
+.tags button{font:inherit;font-size:.8rem;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:.15rem .6rem;cursor:pointer}
+.tags button:hover{color:var(--ink);border-color:var(--ink)}
+@media (max-width:620px){
+  .open-book{grid-template-columns:1fr}
+  .cover{min-height:150px;transform-origin:center top}
+  .arrow{display:none}
+  .scroller{padding-inline:1rem}
+}
+@media (prefers-reduced-motion:reduce){
+  .book,.cover{transition:none;animation:none}.scroller{scroll-behavior:auto}.book.pop{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to profile</a>
+  <h1>Sanjana's bookshelf</h1>
+  <p class="sub">Everything I've read. Hover to pull a book out, click to open it.</p>
+
+  <div class="controls">
+    <input id="q" type="search" placeholder="Search title, author, tag or notes" aria-label="Search books">
+    <select id="year" aria-label="Year read"></select>
+    <select id="rating" aria-label="Minimum rating">
+      <option value="0">Any rating</option>
+      <option value="4">4 stars and up</option>
+      <option value="5">5 stars only</option>
+    </select>
+    <select id="sort" aria-label="Sort by">
+      <option value="csv">Order in file</option>
+      <option value="recent">Most recently read</option>
+      <option value="title">Title A to Z</option>
+      <option value="author">Author A to Z</option>
+      <option value="rating">Highest rated</option>
+      <option value="pages">Longest first</option>
+    </select>
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="Filter by genre"></div>
+  <div class="count" id="count" aria-live="polite"></div>
+
+  <div class="shelf-area">
+    <button class="arrow l" id="prev" aria-label="Scroll left">&lsaquo;</button>
+    <button class="arrow r" id="next" aria-label="Scroll right">&rsaquo;</button>
+    <div class="scroller" id="scroller"><div class="row" id="row"></div></div>
+    <div class="plank"></div><div class="plank-under"></div>
+  </div>
+</div>
+
+<dialog id="dlg" aria-label="Book details">
+  <div class="open-book" id="detail"></div>
+</dialog>
+
+<script>
+const CSV_PATH = 'books.csv';
+const PALETTE = ['#8c2f39','#2f4858','#c98b2b','#3d5a40','#5b3a6b','#b5523b','#22333b','#6b705c','#a4475a','#1d5c63','#7a4e2d','#37474f'];
+let books = [], activeGenre = 'All';
+const $ = id => document.getElementById(id);
+
+/* CSV parser that handles quotes, commas and newlines inside quotes */
+function parseCSV(text){
+  const rows=[]; let row=[], f='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){f+='"';i++} else q=false }
+      else f+=c;
+    } else if(c==='"') q=true;
+    else if(c===','){row.push(f);f=''}
+    else if(c==='\n'||c==='\r'){
+      if(c==='\r'&&text[i+1]==='\n') i++;
+      row.push(f);f=''; if(row.some(x=>x.trim()!=='')) rows.push(row); row=[];
+    } else f+=c;
+  }
+  row.push(f); if(row.some(x=>x.trim()!=='')) rows.push(row);
+  const head=rows.shift().map(h=>h.trim().toLowerCase());
+  return rows.map(r=>Object.fromEntries(head.map((h,i)=>[h,(r[i]||'').trim()])));
+}
+const hash = s => [...s].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
+function fgFor(hex){
+  const n=parseInt(hex.replace('#','').padEnd(6,'0').slice(0,6),16);
+  const l=(0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255))/255;
+  return l>0.6?'#1c1917':'#faf6ee';
+}
+function prep(b,i){
+  const h=hash(b.title||String(i));
+  const color=/^#?[0-9a-f]{6}$/i.test(b.color||'')?('#'+b.color.replace('#','')):PALETTE[h%PALETTE.length];
+  const pages=parseInt(b.pages)||250;
+  return {...b, i, color, fg:fgFor(color), pagesN:pages, ratingN:parseFloat(b.rating)||0,
+    tagList:(b.tags||'').split(/[;|]/).map(s=>s.trim()).filter(Boolean),
+    w:Math.max(34,Math.min(74,Math.round(pages/8))), hgt:210+(h%90)};
+}
+
+function buildFilters(){
+  const genres=['All',...new Set(books.map(b=>b.genre).filter(Boolean))].sort((a,b)=>a==='All'?-1:b==='All'?1:a.localeCompare(b));
+  $('chips').innerHTML='';
+  genres.forEach(g=>{
+    const c=document.createElement('button');
+    c.className='chip';c.textContent=g;c.setAttribute('aria-pressed',g===activeGenre);
+    c.onclick=()=>{activeGenre=g;buildFilters();render()};
+    $('chips').append(c);
+  });
+  const cur=$('year').value||'all';
+  const years=[...new Set(books.map(b=>b.year_read).filter(Boolean))].sort().reverse();
+  $('year').innerHTML='<option value="all">All years</option>'+years.map(y=>`<option>${y}</option>`).join('');
+  $('year').value=years.includes(cur)?cur:'all';
+}
+
+function render(){
+  const q=$('q').value.toLowerCase().trim(), yr=$('year').value, mr=+$('rating').value, sort=$('sort').value;
+  let list=books.filter(b=>
+    (activeGenre==='All'||b.genre===activeGenre)&&
+    (yr==='all'||b.year_read===yr)&&
+    b.ratingN>=mr&&
+    (!q||[b.title,b.author,b.genre,b.tags,b.notes,b.summary].join(' ').toLowerCase().includes(q)));
+  const s={
+    title:(a,b)=>a.title.localeCompare(b.title), author:(a,b)=>a.author.localeCompare(b.author),
+    rating:(a,b)=>b.ratingN-a.ratingN, pages:(a,b)=>b.pagesN-a.pagesN,
+    recent:(a,b)=>(b.date_finished||b.year_read||'').localeCompare(a.date_finished||a.year_read||'')
+  }[sort];
+  if(s) list=[...list].sort(s);
+  $('count').textContent=`${list.length} of ${books.length} books`;
+  const row=$('row'); row.innerHTML='';
+  if(!list.length){row.innerHTML='<div class="empty">No books match. Try clearing a filter.</div>';return}
+  list.forEach(b=>{
+    const el=document.createElement('button');
+    el.className='book';
+    el.style.cssText=`--c:${b.color};--fg:${b.fg};width:${b.w}px;height:${b.hgt}px`;
+    el.setAttribute('aria-label',`${b.title} by ${b.author}`);
+    el.innerHTML=`<span class="t"></span>`;
+    el.firstChild.textContent=b.title;
+    el.onclick=()=>openBook(b);
+    row.append(el);
+  });
+  $('scroller').scrollLeft=0;
+}
+
+function openBook(b){
+  const stars=b.ratingN?'★'.repeat(Math.round(b.ratingN))+'☆'.repeat(5-Math.round(b.ratingN)):'';
+  const d=$('detail');
+  d.innerHTML=`
+    <div class="cover" style="--c:${b.color};--fg:${b.fg}">
+      <h2></h2><p class="au"></p>
+    </div>
+    <div class="page">
+      <button class="x" aria-label="Close">&times;</button>
+      <div class="stars" aria-label="${b.ratingN} out of 5">${stars}</div>
+      <dl></dl>
+      <p class="summary"></p>
+      <div class="notes" hidden></div>
+      <div class="tags"></div>
+    </div>`;
+  d.querySelector('h2').textContent=b.title;
+  d.querySelector('.au').textContent=b.author;
+  const dl=d.querySelector('dl');
+  [['Genre',b.genre],['Pages',b.pages],['Finished',b.date_finished||b.year_read]].forEach(([k,v])=>{
+    if(!v) return; dl.insertAdjacentHTML('beforeend','<dt></dt><dd></dd>');
+    dl.lastChild.textContent=v; dl.lastChild.previousSibling.textContent=k;
+  });
+  d.querySelector('.summary').textContent=b.summary||'';
+  if(b.notes){const n=d.querySelector('.notes');n.hidden=false;n.textContent=b.notes}
+  b.tagList.forEach(t=>{
+    const x=document.createElement('button');x.textContent='#'+t;
+    x.onclick=()=>{$('dlg').close();$('q').value=t;render()};
+    d.querySelector('.tags').append(x);
+  });
+  d.querySelector('.x').onclick=()=>$('dlg').close();
+  $('dlg').showModal();
+}
+$('dlg').addEventListener('click',e=>{if(e.target===$('dlg'))$('dlg').close()});
+
+['q','year','rating','sort'].forEach(id=>$(id).addEventListener('input',render));
+const step=()=>Math.max(240,$('scroller').clientWidth*0.7);
+$('prev').onclick=()=>$('scroller').scrollBy({left:-step()});
+$('next').onclick=()=>$('scroller').scrollBy({left:step()});
+// let a vertical mouse wheel scroll the shelf sideways
+$('scroller').addEventListener('wheel',e=>{
+  if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();$('scroller').scrollLeft+=e.deltaY}
+},{passive:false});
+
+fetch(CSV_PATH).then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>{
+  books=parseCSV(t).filter(b=>b.title).map(prep);
+  buildFilters();render();
+}).catch(()=>{
+  $('row').innerHTML='<div class="empty">Could not load books.csv. If you opened this file directly, run a local server (python3 -m http.server) or view it on GitHub Pages.</div>';
+});
+</script>
+</body>
+</html>
